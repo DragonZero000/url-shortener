@@ -1,0 +1,51 @@
+# URL Shortener - Docker Compose configuration
+# Usage:
+#   1. Copy .env-example to .env and update values
+#   2. Run: docker compose up -d --build
+#   3. Access frontend at http://localhost
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shortener}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortener}
+      POSTGRES_DB: ${POSTGRES_DB:-shortener}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shortener}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:-shortener}@postgres:5432/${POSTGRES_DB:-shortener}?sslmode=disable
+      SERVER_PORT: :${BACKEND_PORT:-8080}
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+    ports:
+      - "${BACKEND_PORT:-8080}:${BACKEND_PORT:-8080}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+        VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-http://localhost}
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

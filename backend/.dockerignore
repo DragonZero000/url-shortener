@@ -1,0 +1,8 @@
+postman/
+*.md
+.env
+.env*
+.git
+.gitignore
+.vscode
+.idea

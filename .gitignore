@@ -1,0 +1,52 @@
+# Environment files with secrets
+.env
+.env.local
+.env*.local
+
+# Go backend
+backend/vendor/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+backend/postman/
+backend/.postman/
+
+# Frontend (root-level, frontend/.gitignore covers more)
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+*.tsbuildinfo
+
+# Docker volumes and data
+docker-data/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
