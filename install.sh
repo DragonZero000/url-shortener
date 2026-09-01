@@ -60,7 +60,13 @@ echo ""
 echo -e "${YELLOW}[1/4] Проверка зависимостей...${NC}"
 
 check_dependency docker Docker
-check_dependency docker-compose "Docker Compose"
+
+# Docker Compose распространяется как плагин ("docker compose", с пробелом),
+# а не отдельная программа ("docker-compose") — проверяем именно так.
+if ! docker compose version &> /dev/null; then
+    echo -e "${RED}[ERROR]${NC} Docker Compose не найден. Установите его и повторите попытку."
+    exit 1
+fi
 
 # Проверка запущен ли Docker daemon
 if ! docker info &> /dev/null; then
@@ -95,15 +101,24 @@ echo ""
 
 # --- Бэкенд ---
 echo -e "${BOLD}⚙️  Бэкенд (Go)${NC}"
-BACKEND_PORT=$(ask "Порт бэкенда" "8080")
-BASE_URL=$(ask "URL бэкенда (для API)" "http://localhost:8080")
+BACKEND_PORT=$(ask "Порт бэкенда (для прямых запросов к API в обход nginx, необязательно для работы сайта)" "8080")
 echo ""
 
 # --- Фронтенд ---
 echo -e "${BOLD}🎨 Фронтенд (Vue.js)${NC}"
 FRONTEND_PORT=$(ask "Порт фронтенда" "80")
-VITE_API_BASE_URL=$(ask "API URL для фронтенда" "http://localhost:8080")
-VITE_WEB_BASE_URL=$(ask "Web URL для фронтенда" "http://localhost")
+
+# BASE_URL — это публичный адрес САЙТА (фронтенда), а не бэкенда: именно на нём
+# nginx проксирует и /shorten, и переходы по коротким ссылкам. Подставляем
+# порт фронтенда в дефолт, чтобы не приходилось вводить его вручную для
+# нестандартных портов.
+if [ "$FRONTEND_PORT" = "80" ]; then
+    default_base_url="http://localhost"
+else
+    default_base_url="http://localhost:$FRONTEND_PORT"
+fi
+echo -e "  ${CYAN}ℹ${NC} BASE_URL — это публичный адрес сайта (без https://, пока не настроен реальный TLS-сертификат)."
+BASE_URL=$(ask "Публичный адрес сайта" "$default_base_url")
 echo ""
 
 # --- Окружение ---
@@ -138,8 +153,6 @@ ENV_FILE=".env"
     echo ""
     echo "# Frontend configuration"
     echo "FRONTEND_PORT=$FRONTEND_PORT"
-    echo "VITE_API_BASE_URL=$VITE_API_BASE_URL"
-    echo "VITE_WEB_BASE_URL=$VITE_WEB_BASE_URL"
 
     # Environment
     echo ""
@@ -165,10 +178,8 @@ if [ $? -eq 0 ]; then
     echo -e "  ${BOLD}${GREEN}✓ Проект успешно запущен!${NC}"
     print_separator
     echo ""
-    echo -e "  ${BOLD}🌐 Фронтенд:${NC}  http://localhost"
-    if [ "$BACKEND_PORT" != "80" ]; then
-        echo -e "  ${BOLD}⚙️  Бэкенд:${NC}    http://localhost:$BACKEND_PORT"
-    fi
+    echo -e "  ${BOLD}🌐 Фронтенд:${NC}  $BASE_URL"
+    echo -e "  ${BOLD}⚙️  Бэкенд (напрямую, необязательно):${NC}  http://localhost:$BACKEND_PORT"
     echo ""
     echo -e "  ${CYAN}Логи:${NC} docker compose logs -f"
     echo -e "  ${CYAN}Остановка:${NC} docker compose down"

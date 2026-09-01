@@ -1,6 +1,3 @@
-ARG VITE_API_BASE_URL=http://localhost:8080
-ARG VITE_WEB_BASE_URL=http://localhost
-
 FROM oven/bun:1-alpine AS build
 
 WORKDIR /app

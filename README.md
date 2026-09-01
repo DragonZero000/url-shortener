@@ -104,16 +104,14 @@ docker compose up -d --build
 
 | Переменная | По умолчанию | Описание |
 |------------|--------------|----------|
-| `BACKEND_PORT` | `8080` | Порт API сервера |
-| `BASE_URL` | `http://localhost:8080` | Базовый URL бэкенда (используется для генерации коротких ссылок) |
+| `BACKEND_PORT` | `8080` | Порт API сервера (проксируется через nginx; наружу публиковать не обязательно) |
+| `BASE_URL` | `http://localhost` | **Публичный адрес фронтенда** (не бэкенда!) — используется только для генерации текста короткой ссылки в ответе API. Короткие ссылки проксируются через nginx, поэтому значение должно совпадать с адресом сайта в браузере. Без настроенного HTTPS-сертификата используйте `http://`, не `https://` |
 
 ### Frontend (Vue.js + Nginx)
 
 | Переменная | По умолчанию | Описание |
 |------------|--------------|----------|
 | `FRONTEND_PORT` | `80` | Порт веб-сервера |
-| `VITE_API_BASE_URL` | `http://localhost:8080` | URL API для фронтенда |
-| `VITE_WEB_BASE_URL` | `http://localhost` | Базовый URL веб-приложения |
 
 ### Окружение
 
@@ -208,16 +206,22 @@ url-shortener/
 
 ### Пример production конфигурации:
 
+> ⚠️ Проект из коробки настроен только на обычный HTTP (порт 80, без TLS).
+> Если нужен HTTPS — поставьте перед `frontend` отдельный reverse proxy
+> с реальным сертификатом (например, Traefik или Nginx + certbot на хосте)
+> и уже он должен принимать 443/TLS и проксировать на `frontend:80`.
+> **Не** указывайте `FRONTEND_PORT=443` и не пишите `https://` в `BASE_URL`,
+> пока такой прокси с сертификатом не настроен — иначе сайт будет недоступен,
+> ровно как и без TLS-конфигурации внутри `frontend/nginx.conf`.
+
 ```bash
-# .env (production)
+# .env (production, без дополнительного HTTPS-прокси)
 POSTGRES_USER=prod_user
 POSTGRES_PASSWORD=<strong-password-here>
 POSTGRES_DB=url_shortener_db
 POSTGRES_PORT=0                    # Запрещаем внешний доступ к БД
 BACKEND_PORT=8080
-BASE_URL=https://api.yourdomain.com
-FRONTEND_PORT=443
-VITE_API_BASE_URL=https://api.yourdomain.com
-VITE_WEB_BASE_URL=https://yourdomain.com
+BASE_URL=http://<ваш-IP-или-домен>  # публичный адрес фронтенда, порт 80, без https://
+FRONTEND_PORT=80
 APP_ENV=production
 ```

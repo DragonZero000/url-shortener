@@ -28,7 +28,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:-shortener}@postgres:5432/${POSTGRES_DB:-shortener}?sslmode=disable
       SERVER_PORT: :${BACKEND_PORT:-8080}
-      BASE_URL: ${BASE_URL:-http://localhost:8080}
+      BASE_URL: ${BASE_URL:-http://localhost}
     ports:
       - "${BACKEND_PORT:-8080}:${BACKEND_PORT:-8080}"
     depends_on:
@@ -39,9 +39,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
-        VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-http://localhost}
     ports:
       - "${FRONTEND_PORT:-80}:80"
     depends_on:
