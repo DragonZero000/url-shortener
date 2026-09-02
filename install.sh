@@ -104,20 +104,21 @@ echo -e "${BOLD}⚙️  Бэкенд (Go)${NC}"
 BACKEND_PORT=$(ask "Порт бэкенда (для прямых запросов к API в обход nginx, необязательно для работы сайта)" "8080")
 echo ""
 
-# --- Фронтенд ---
-echo -e "${BOLD}🎨 Фронтенд (Vue.js)${NC}"
-FRONTEND_PORT=$(ask "Порт фронтенда" "80")
+# --- HTTPS / домен ---
+echo -e "${BOLD}🔒 HTTPS / домен${NC}"
+echo -e "  ${CYAN}ℹ${NC} Если указать настоящий домен (например, ваш DDNS-адрес), Caddy сам"
+echo -e "  ${CYAN}ℹ${NC} получит и будет продлевать бесплатный HTTPS-сертификат Let's Encrypt."
+echo -e "  ${CYAN}ℹ${NC} Порты 80 и 443 при этом должны быть доступны из интернета."
+SITE_DOMAIN=$(ask "Домен сайта (localhost — для локальной разработки без HTTPS)" "localhost")
 
-# BASE_URL — это публичный адрес САЙТА (фронтенда), а не бэкенда: именно на нём
-# nginx проксирует и /shorten, и переходы по коротким ссылкам. Подставляем
-# порт фронтенда в дефолт, чтобы не приходилось вводить его вручную для
-# нестандартных портов.
-if [ "$FRONTEND_PORT" = "80" ]; then
+# Подставляем разумный дефолт для BASE_URL в зависимости от домена:
+# localhost -> http, настоящий домен -> https (Caddy настроит его автоматически).
+if [ "$SITE_DOMAIN" = "localhost" ]; then
     default_base_url="http://localhost"
 else
-    default_base_url="http://localhost:$FRONTEND_PORT"
+    default_base_url="https://$SITE_DOMAIN"
 fi
-echo -e "  ${CYAN}ℹ${NC} BASE_URL — это публичный адрес сайта (без https://, пока не настроен реальный TLS-сертификат)."
+echo -e "  ${CYAN}ℹ${NC} BASE_URL — публичный адрес сайта, используется для текста коротких ссылок."
 BASE_URL=$(ask "Публичный адрес сайта" "$default_base_url")
 echo ""
 
@@ -149,10 +150,10 @@ ENV_FILE=".env"
     echo "BACKEND_PORT=$BACKEND_PORT"
     echo "BASE_URL=$BASE_URL"
 
-    # Frontend
+    # HTTPS / домен
     echo ""
-    echo "# Frontend configuration"
-    echo "FRONTEND_PORT=$FRONTEND_PORT"
+    echo "# HTTPS / domain configuration"
+    echo "SITE_DOMAIN=$SITE_DOMAIN"
 
     # Environment
     echo ""

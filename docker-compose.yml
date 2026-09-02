@@ -28,7 +28,13 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:-shortener}@postgres:5432/${POSTGRES_DB:-shortener}?sslmode=disable
       SERVER_PORT: :${BACKEND_PORT:-8080}
+      # BASE_URL должен быть публичным адресом ФРОНТЕНДА (не бэкенда!) — короткие ссылки
+      # проксируются через nginx (см. frontend/nginx.conf), поэтому по умолчанию совпадает
+      # с адресом, на котором открывается сайт.
       BASE_URL: ${BASE_URL:-http://localhost}
+    # Порт бэкенда наружу можно не публиковать вовсе — nginx достаёт backend
+    # по внутренней docker-сети. Проброс оставлен для удобства прямого
+    # тестирования API (curl/Postman) в разработке.
     ports:
       - "${BACKEND_PORT:-8080}:${BACKEND_PORT:-8080}"
     depends_on:
@@ -39,10 +45,34 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PORT:-80}:80"
+    # Порт наружу не публикуем: снаружи сайт доступен только через caddy
+    # (он делает TLS/HTTPS и проксирует сюда). Внутри docker-сети caddy
+    # достаёт этот сервис по имени "frontend" и порту 80.
     depends_on:
       - backend
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      # Домен сайта: реальный домен (например, ваш DDNS-адрес) — для него
+      # Caddy автоматически получит и будет продлевать HTTPS-сертификат.
+      # "localhost" — для локальной разработки без HTTPS.
+      SITE_DOMAIN: ${SITE_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Сертификаты и служебные данные Caddy должны сохраняться между
+      # перезапусками — иначе Caddy будет заново запрашивать сертификат
+      # при каждом docker compose up и легко упрётся в лимиты Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

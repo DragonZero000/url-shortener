@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -38,6 +39,6 @@ func Load() (*Config, error) {
 		slog.Error("no domain name", "error", err)
 		return nil, err
 	}
-	cfg.WebBaseURL = webBaseURL
+	cfg.WebBaseURL = strings.TrimRight(webBaseURL, "/")
 	return &cfg, nil
 }
